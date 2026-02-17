@@ -7,42 +7,75 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <main class="shell">
-      <header class="hud">
-        <div class="hud__left">
-          <div class="hud__title">Velocity Ridge Rally</div>
-          <div class="hud__meta">Time Extenders add race time</div>
-        </div>
-        <div class="hud__stats">
-          <div class="stat">
-            <span class="stat__label">Time</span>
-            <span id="timeValue" class="stat__value">60.0s</span>
+    <main class="page">
+      <section class="hero">
+        <div class="hero__glow"></div>
+        <div class="hero__content">
+          <div class="hero__badge">Neo Track Simulation</div>
+          <h1>Velocity Ridge Rally</h1>
+          <p class="hero__lead">
+            Race the neon ridge, extend time with boosters, and carve the highest possible race time before the clock shuts you down.
+          </p>
+          <div class="hero__cta">
+            <button id="startBtn" class="primary">Launch Run</button>
+            <button id="restartBtn" class="ghost">Restart</button>
           </div>
-          <div class="stat">
-            <span class="stat__label">Distance</span>
-            <span id="distanceValue" class="stat__value">0.0km</span>
-          </div>
-          <div class="stat">
-            <span class="stat__label">High Time</span>
-            <span id="highScoreValue" class="stat__value">0.0s</span>
-          </div>
-        </div>
-      </header>
-
-      <section class="stage">
-        <canvas id="gameCanvas" width="960" height="600" aria-label="Racing game"></canvas>
-        <div id="overlay" class="overlay">
-          <div class="overlay__card">
-            <h1>Velocity Ridge Rally</h1>
-            <p>Collect time extenders to push your maximum race time.</p>
-            <p>Avoid obstacles and keep your run alive until the clock runs out.</p>
-            <div class="overlay__actions">
-              <button id="startBtn">Start Race</button>
-              <button id="restartBtn" class="ghost">Restart</button>
+          <div class="hero__grid">
+            <div class="feature">
+              <div class="feature__title">Time Extenders</div>
+              <div class="feature__copy">Collect green cores to add race time.</div>
             </div>
-            <div class="overlay__controls">
-              <div>Keyboard: WASD or Arrow Keys</div>
-              <div>Mobile: Drag anywhere on the track</div>
+            <div class="feature">
+              <div class="feature__title">Obstacles</div>
+              <div class="feature__copy">Crash blocks cut your remaining time.</div>
+            </div>
+            <div class="feature">
+              <div class="feature__title">High Time</div>
+              <div class="feature__copy">Your max possible race time is the score.</div>
+            </div>
+          </div>
+          <div class="hero__controls">
+            <span>Keyboard: WASD / Arrows</span>
+            <span>Touch: Drag on track</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="game">
+        <header class="hud">
+          <div class="hud__left">
+            <div class="hud__title">Ridge Telemetry</div>
+            <div class="hud__meta">Time extenders stack to raise max time</div>
+          </div>
+          <div class="hud__stats">
+            <div class="stat">
+              <span class="stat__label">Time</span>
+              <span id="timeValue" class="stat__value">60.0s</span>
+            </div>
+            <div class="stat">
+              <span class="stat__label">Distance</span>
+              <span id="distanceValue" class="stat__value">0.0km</span>
+            </div>
+            <div class="stat">
+              <span class="stat__label">High Time</span>
+              <span id="highScoreValue" class="stat__value">0.0s</span>
+            </div>
+          </div>
+        </header>
+
+        <div class="stage">
+          <canvas id="gameCanvas" width="960" height="600" aria-label="Racing game"></canvas>
+          <div id="overlay" class="overlay">
+            <div class="overlay__card">
+              <h2>System Ready</h2>
+              <p>Boosters extend your time. Hit hazards and the timer drops.</p>
+              <div class="overlay__actions">
+                <button id="startBtnInline" class="primary">Launch Run</button>
+              </div>
+              <div class="overlay__controls">
+                <div>Keyboard: WASD or Arrow Keys</div>
+                <div>Mobile: Drag anywhere on the track</div>
+              </div>
             </div>
           </div>
         </div>

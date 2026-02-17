@@ -4,6 +4,7 @@ const ctx = canvas.getContext("2d");
 const overlay = document.getElementById("overlay");
 const startBtn = document.getElementById("startBtn");
 const restartBtn = document.getElementById("restartBtn");
+const startBtnInline = document.getElementById("startBtnInline");
 const timeValue = document.getElementById("timeValue");
 const distanceValue = document.getElementById("distanceValue");
 const highScoreValue = document.getElementById("highScoreValue");
@@ -12,11 +13,10 @@ const GAME = {
   width: canvas.width,
   height: canvas.height,
   laneCount: 3,
-  laneWidth: canvas.width * 0.22,
   roadWidth: canvas.width * 0.7,
   roadLeft: canvas.width * 0.15,
-  speed: 240,
-  maxSpeed: 480,
+  speed: 260,
+  maxSpeed: 520,
   baseTime: 60,
   timeBonus: 8,
 };
@@ -44,6 +44,12 @@ const player = {
   height: 92,
   targetX: canvas.width * 0.5,
   speed: 420,
+};
+
+const world = {
+  roadWidth: GAME.roadWidth,
+  roadLeft: GAME.roadLeft,
+  laneWidth: 0,
 };
 
 const keys = new Set();
@@ -97,8 +103,7 @@ const resetGame = () => {
   state.extenders = [];
   state.spawnTimer = 0;
   state.extendTimer = 0;
-  player.x = canvas.width * 0.5;
-  player.targetX = player.x;
+  resizeCanvas();
   updateHUD();
 };
 
@@ -165,7 +170,24 @@ const spawnExtender = () => {
 };
 
 const laneCenter = (lane) => {
-  return GAME.roadLeft + GAME.laneWidth * 0.5 + lane * GAME.laneWidth;
+  return world.roadLeft + world.laneWidth * 0.5 + lane * world.laneWidth;
+};
+
+const resizeCanvas = () => {
+  const ratio = window.devicePixelRatio || 1;
+  const displayWidth = canvas.clientWidth;
+  const displayHeight = canvas.clientHeight;
+  canvas.width = Math.round(displayWidth * ratio);
+  canvas.height = Math.round(displayHeight * ratio);
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+  world.roadWidth = displayWidth * 0.7;
+  world.roadLeft = (displayWidth - world.roadWidth) * 0.5;
+  world.laneWidth = world.roadWidth / GAME.laneCount;
+
+  player.y = displayHeight * 0.72;
+  player.x = clamp(player.x, world.roadLeft + 40, world.roadLeft + world.roadWidth - 40);
+  player.targetX = player.x;
 };
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -181,7 +203,7 @@ const updatePlayer = (dt) => {
     target += move;
   }
 
-  player.targetX = clamp(target, GAME.roadLeft + 40, GAME.roadLeft + GAME.roadWidth - 40);
+  player.targetX = clamp(target, world.roadLeft + 40, world.roadLeft + world.roadWidth - 40);
   const delta = player.targetX - player.x;
   player.x += delta * Math.min(1, dt * 6);
 };
@@ -214,7 +236,8 @@ const checkCircleCollision = (circle, target) => {
 const updateGame = (dt) => {
   state.elapsed += dt;
   state.timeLeft -= dt;
-  state.distance += GAME.speed * dt;
+  const speed = Math.min(GAME.speed + state.elapsed * 2.2, GAME.maxSpeed);
+  state.distance += speed * dt;
   updateMaxTime();
 
   state.spawnTimer += dt;
@@ -274,33 +297,36 @@ const updateGame = (dt) => {
 };
 
 const drawRoad = () => {
-  ctx.fillStyle = "#9db0c5";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  ctx.fillStyle = "#05060a";
+  ctx.fillRect(0, 0, width, height);
 
-  ctx.fillStyle = "#6c7a88";
-  ctx.fillRect(GAME.roadLeft - 40, 0, GAME.roadWidth + 80, canvas.height);
+  const shoulder = 50;
+  ctx.fillStyle = "#0b1020";
+  ctx.fillRect(world.roadLeft - shoulder, 0, world.roadWidth + shoulder * 2, height);
 
-  ctx.fillStyle = "#2b2f35";
-  ctx.fillRect(GAME.roadLeft, 0, GAME.roadWidth, canvas.height);
+  ctx.fillStyle = "#0f1628";
+  ctx.fillRect(world.roadLeft, 0, world.roadWidth, height);
 
-  ctx.strokeStyle = "#f2c14e";
-  ctx.lineWidth = 6;
-  ctx.setLineDash([20, 24]);
-  ctx.lineDashOffset = -state.distance * 0.15;
+  ctx.strokeStyle = "rgba(0, 245, 255, 0.45)";
+  ctx.lineWidth = 4;
+  ctx.setLineDash([26, 32]);
+  ctx.lineDashOffset = -state.distance * 0.18;
 
   for (let i = 1; i < GAME.laneCount; i += 1) {
-    const x = GAME.roadLeft + GAME.laneWidth * i;
+    const x = world.roadLeft + world.laneWidth * i;
     ctx.beginPath();
     ctx.moveTo(x, 0);
-    ctx.lineTo(x, canvas.height);
+    ctx.lineTo(x, height);
     ctx.stroke();
   }
 
   ctx.setLineDash([]);
 
-  ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
-  ctx.fillRect(GAME.roadLeft - 10, 0, 10, canvas.height);
-  ctx.fillRect(GAME.roadLeft + GAME.roadWidth, 0, 10, canvas.height);
+  ctx.fillStyle = "rgba(0, 245, 255, 0.12)";
+  ctx.fillRect(world.roadLeft - 12, 0, 8, height);
+  ctx.fillRect(world.roadLeft + world.roadWidth + 4, 0, 8, height);
 };
 
 const drawCar = () => {
@@ -309,13 +335,16 @@ const drawCar = () => {
   const lean = (player.x - player.targetX) * 0.01;
   ctx.rotate(lean);
 
-  ctx.fillStyle = "#e03b35";
+  const gradient = ctx.createLinearGradient(0, -player.height / 2, 0, player.height / 2);
+  gradient.addColorStop(0, "#00f5ff");
+  gradient.addColorStop(1, "#4b00ff");
+  ctx.fillStyle = gradient;
   ctx.fillRect(-player.width / 2, -player.height / 2, player.width, player.height);
 
-  ctx.fillStyle = "#f7f0e8";
-  ctx.fillRect(-player.width / 4, -player.height / 4, player.width / 2, player.height / 3);
+  ctx.fillStyle = "rgba(7, 10, 20, 0.8)";
+  ctx.fillRect(-player.width / 3, -player.height / 4, player.width / 1.5, player.height / 3);
 
-  ctx.fillStyle = "#1c1f24";
+  ctx.fillStyle = "#05060a";
   ctx.fillRect(-player.width / 2 - 6, -player.height / 3, 8, player.height * 0.8);
   ctx.fillRect(player.width / 2 - 2, -player.height / 3, 8, player.height * 0.8);
 
@@ -328,9 +357,9 @@ const drawCar = () => {
 const drawObstacle = (obstacle) => {
   ctx.save();
   ctx.translate(obstacle.x, obstacle.y);
-  ctx.fillStyle = "#4b555f";
+  ctx.fillStyle = "#141d30";
   ctx.fillRect(-obstacle.width / 2, -obstacle.height / 2, obstacle.width, obstacle.height);
-  ctx.strokeStyle = "#d0d6de";
+  ctx.strokeStyle = "rgba(0, 245, 255, 0.5)";
   ctx.lineWidth = 4;
   ctx.strokeRect(-obstacle.width / 2 + 4, -obstacle.height / 2 + 4, obstacle.width - 8, obstacle.height - 8);
   ctx.restore();
@@ -341,9 +370,9 @@ const drawCoin = (coin) => {
   ctx.translate(coin.x, coin.y);
   ctx.beginPath();
   ctx.arc(0, 0, coin.radius, 0, Math.PI * 2);
-  ctx.fillStyle = "#f2c14e";
+  ctx.fillStyle = "#f8c537";
   ctx.fill();
-  ctx.strokeStyle = "#f4d67b";
+  ctx.strokeStyle = "rgba(248, 197, 55, 0.7)";
   ctx.lineWidth = 3;
   ctx.stroke();
   ctx.restore();
@@ -352,20 +381,22 @@ const drawCoin = (coin) => {
 const drawExtender = (extender) => {
   ctx.save();
   ctx.translate(extender.x, extender.y);
-  ctx.fillStyle = "#2fbf71";
+  ctx.fillStyle = "#00f5ff";
   ctx.fillRect(-extender.width / 2, -extender.height / 2, extender.width, extender.height);
-  ctx.fillStyle = "#e7fff0";
+  ctx.fillStyle = "rgba(4, 8, 16, 0.8)";
   ctx.fillRect(-extender.width / 6, -extender.height / 3, extender.width / 3, extender.height * 0.66);
   ctx.fillRect(-extender.width / 3, -extender.height / 6, extender.width * 0.66, extender.height / 3);
   ctx.restore();
 };
 
 const drawParticles = () => {
-  ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+  ctx.fillStyle = "rgba(0, 245, 255, 0.18)";
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
   for (let i = 0; i < 30; i += 1) {
-    const x = Math.random() * canvas.width;
-    const y = (state.distance * 0.5 + i * 100) % canvas.height;
-    ctx.fillRect(x, y, 2, 12);
+    const x = (i * 37) % width;
+    const y = (state.distance * 0.6 + i * 110) % height;
+    ctx.fillRect(x, y, 2, 14);
   }
 };
 
@@ -401,7 +432,7 @@ const handleKey = (event, isDown) => {
 const handlePointer = (event) => {
   const rect = canvas.getBoundingClientRect();
   const x = event.clientX - rect.left;
-  player.targetX = clamp(x, GAME.roadLeft + 40, GAME.roadLeft + GAME.roadWidth - 40);
+  player.targetX = clamp(x, world.roadLeft + 40, world.roadLeft + world.roadWidth - 40);
 };
 
 window.addEventListener("keydown", (event) => handleKey(event, true));
@@ -425,19 +456,22 @@ canvas.addEventListener("pointerup", endPointer);
 canvas.addEventListener("pointercancel", endPointer);
 canvas.addEventListener("pointerleave", endPointer);
 
-startBtn.addEventListener("click", () => {
+const resumeAudio = () => {
   if (audioCtx) {
     audioCtx.resume();
   }
-  startGame();
-});
+};
 
-restartBtn.addEventListener("click", () => {
-  if (audioCtx) {
-    audioCtx.resume();
-  }
-  startGame();
+[startBtn, restartBtn, startBtnInline].forEach((button) => {
+  if (!button) return;
+  button.addEventListener("click", () => {
+    resumeAudio();
+    startGame();
+  });
 });
 
 setOverlay(true);
 highScoreValue.textContent = `${loadHighScore().toFixed(1)}s`;
+
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
