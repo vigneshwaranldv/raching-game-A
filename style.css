@@ -1,0 +1,194 @@
+@import url("https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600&family=PT+Serif:wght@400;700&display=swap");
+
+:root {
+  color-scheme: light;
+  --sky: #cad7e5;
+  --asphalt: #2b2f35;
+  --asphalt-dark: #202329;
+  --asphalt-light: #3a3f48;
+  --lane: #f2c14e;
+  --rim: #c9ced6;
+  --accent: #f05d23;
+  --accent-soft: rgba(240, 93, 35, 0.18);
+  --ink: #1c1f24;
+  --panel: rgba(255, 255, 255, 0.7);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  font-family: "PT Serif", serif;
+  color: var(--ink);
+  background: radial-gradient(circle at top, #e9eef4, #c4d1df 45%, #9fb1c3 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.shell {
+  width: min(1100px, 96vw);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0.35));
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 30px 60px rgba(11, 26, 45, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(12px);
+  display: grid;
+  gap: 18px;
+}
+
+.hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hud__title {
+  font-family: "Oswald", sans-serif;
+  font-size: 28px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.hud__meta {
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+.hud__stats {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 12px;
+}
+
+.stat {
+  background: var(--panel);
+  border-radius: 14px;
+  padding: 10px 16px;
+  min-width: 110px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.stat__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: block;
+  opacity: 0.6;
+}
+
+.stat__value {
+  font-family: "Oswald", sans-serif;
+  font-size: 20px;
+}
+
+.stage {
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  background: linear-gradient(160deg, #d0d9e3, #aab9c7);
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.2);
+}
+
+canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(23, 27, 33, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.overlay--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.overlay__card {
+  background: rgba(250, 250, 250, 0.95);
+  border-radius: 20px;
+  padding: 24px;
+  text-align: center;
+  width: min(420px, 90%);
+  box-shadow: 0 20px 50px rgba(10, 20, 40, 0.35);
+}
+
+.overlay__card h1 {
+  font-family: "Oswald", sans-serif;
+  margin-bottom: 10px;
+  font-size: 28px;
+}
+
+.overlay__card p {
+  font-size: 14px;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.overlay__actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 14px 0 12px;
+}
+
+button {
+  font-family: "Oswald", sans-serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(240, 93, 35, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(240, 93, 35, 0.4);
+}
+
+button.ghost {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  box-shadow: none;
+}
+
+.overlay__controls {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+@media (max-width: 720px) {
+  .hud {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hud__stats {
+    width: 100%;
+    grid-auto-flow: row;
+  }
+}

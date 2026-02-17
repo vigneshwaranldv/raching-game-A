@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Velocity Ridge Rally</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hud">
+        <div class="hud__left">
+          <div class="hud__title">Velocity Ridge Rally</div>
+          <div class="hud__meta">Time Extenders add race time</div>
+        </div>
+        <div class="hud__stats">
+          <div class="stat">
+            <span class="stat__label">Time</span>
+            <span id="timeValue" class="stat__value">60.0s</span>
+          </div>
+          <div class="stat">
+            <span class="stat__label">Distance</span>
+            <span id="distanceValue" class="stat__value">0.0km</span>
+          </div>
+          <div class="stat">
+            <span class="stat__label">High Time</span>
+            <span id="highScoreValue" class="stat__value">0.0s</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="stage">
+        <canvas id="gameCanvas" width="960" height="600" aria-label="Racing game"></canvas>
+        <div id="overlay" class="overlay">
+          <div class="overlay__card">
+            <h1>Velocity Ridge Rally</h1>
+            <p>Collect time extenders to push your maximum race time.</p>
+            <p>Avoid obstacles and keep your run alive until the clock runs out.</p>
+            <div class="overlay__actions">
+              <button id="startBtn">Start Race</button>
+              <button id="restartBtn" class="ghost">Restart</button>
+            </div>
+            <div class="overlay__controls">
+              <div>Keyboard: WASD or Arrow Keys</div>
+              <div>Mobile: Drag anywhere on the track</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
