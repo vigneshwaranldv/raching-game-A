@@ -19,6 +19,7 @@ const GAME = {
   maxSpeed: 520,
   baseTime: 60,
   timeBonus: 8,
+  horizonRatio: 0.18,
 };
 
 const state = {
@@ -50,6 +51,11 @@ const world = {
   roadWidth: GAME.roadWidth,
   roadLeft: GAME.roadLeft,
   laneWidth: 0,
+  width: canvas.clientWidth,
+  height: canvas.clientHeight,
+  topWidth: GAME.roadWidth * 0.4,
+  topLeft: GAME.roadLeft,
+  horizonY: 0,
 };
 
 const keys = new Set();
@@ -140,8 +146,9 @@ const spawnObstacle = () => {
   const lane = Math.floor(Math.random() * GAME.laneCount);
   const size = 50 + Math.random() * 25;
   state.obstacles.push({
-    x: laneCenter(lane),
-    y: -100,
+    lane,
+    x: 0,
+    y: world.horizonY - 120,
     width: size,
     height: size * 0.9,
     speed: GAME.speed + Math.random() * 80,
@@ -151,8 +158,9 @@ const spawnObstacle = () => {
 const spawnCoin = () => {
   const lane = Math.floor(Math.random() * GAME.laneCount);
   state.coins.push({
-    x: laneCenter(lane),
-    y: -120,
+    lane,
+    x: 0,
+    y: world.horizonY - 140,
     radius: 16,
     speed: GAME.speed + 80,
   });
@@ -161,16 +169,30 @@ const spawnCoin = () => {
 const spawnExtender = () => {
   const lane = Math.floor(Math.random() * GAME.laneCount);
   state.extenders.push({
-    x: laneCenter(lane),
-    y: -140,
+    lane,
+    x: 0,
+    y: world.horizonY - 160,
     width: 34,
     height: 34,
     speed: GAME.speed + 60,
   });
 };
 
-const laneCenter = (lane) => {
-  return world.roadLeft + world.laneWidth * 0.5 + lane * world.laneWidth;
+const laneCenter = (lane, y) => {
+  const t = clamp((y - world.horizonY) / (world.height - world.horizonY), 0, 1);
+  const bottomLeft = world.roadLeft;
+  const topLeft = world.topLeft;
+  const bottomWidth = world.roadWidth;
+  const topWidth = world.topWidth;
+  const left = topLeft + (bottomLeft - topLeft) * t;
+  const width = topWidth + (bottomWidth - topWidth) * t;
+  const laneWidth = width / GAME.laneCount;
+  return left + laneWidth * 0.5 + lane * laneWidth;
+};
+
+const getScale = (y) => {
+  const t = clamp((y - world.horizonY) / (world.height - world.horizonY), 0, 1);
+  return 0.45 + t * 0.85;
 };
 
 const resizeCanvas = () => {
@@ -181,11 +203,16 @@ const resizeCanvas = () => {
   canvas.height = Math.round(displayHeight * ratio);
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
-  world.roadWidth = displayWidth * 0.7;
+  world.width = displayWidth;
+  world.height = displayHeight;
+  world.roadWidth = displayWidth * 0.72;
   world.roadLeft = (displayWidth - world.roadWidth) * 0.5;
+  world.topWidth = world.roadWidth * 0.42;
+  world.topLeft = (displayWidth - world.topWidth) * 0.5;
   world.laneWidth = world.roadWidth / GAME.laneCount;
+  world.horizonY = displayHeight * GAME.horizonRatio;
 
-  player.y = displayHeight * 0.72;
+  player.y = displayHeight * 0.78;
   player.x = clamp(player.x, world.roadLeft + 40, world.roadLeft + world.roadWidth - 40);
   player.targetX = player.x;
 };
@@ -212,25 +239,27 @@ const updateEntities = (items, dt) => {
   items.forEach((item) => {
     item.y += item.speed * dt;
   });
-  return items.filter((item) => item.y < canvas.height + 120);
+  return items.filter((item) => item.y < world.height + 140);
 };
 
-const checkCollision = (rect, target) => {
-  const rx = rect.x - rect.width / 2;
-  const ry = rect.y - rect.height / 2;
+const checkCollision = (rect, target, scale = 1) => {
+  const width = rect.width * scale;
+  const height = rect.height * scale;
+  const rx = rect.x - width / 2;
+  const ry = rect.y - height / 2;
   return (
     rx < target.x + target.width / 2 &&
-    rx + rect.width > target.x - target.width / 2 &&
+    rx + width > target.x - target.width / 2 &&
     ry < target.y + target.height / 2 &&
-    ry + rect.height > target.y - target.height / 2
+    ry + height > target.y - target.height / 2
   );
 };
 
-const checkCircleCollision = (circle, target) => {
+const checkCircleCollision = (circle, target, scale = 1) => {
   const dx = Math.abs(circle.x - target.x);
   const dy = Math.abs(circle.y - target.y);
   const distance = Math.sqrt(dx * dx + dy * dy);
-  return distance < circle.radius + Math.min(target.width, target.height) * 0.4;
+  return distance < circle.radius * scale + Math.min(target.width, target.height) * 0.4;
 };
 
 const updateGame = (dt) => {
@@ -263,15 +292,27 @@ const updateGame = (dt) => {
   state.extenders = updateEntities(state.extenders, dt);
 
   state.obstacles.forEach((obstacle) => {
-    if (checkCollision(obstacle, player)) {
+    obstacle.x = laneCenter(obstacle.lane, obstacle.y);
+  });
+  state.coins.forEach((coin) => {
+    coin.x = laneCenter(coin.lane, coin.y);
+  });
+  state.extenders.forEach((extender) => {
+    extender.x = laneCenter(extender.lane, extender.y);
+  });
+
+  state.obstacles.forEach((obstacle) => {
+    const scale = getScale(obstacle.y);
+    if (checkCollision(obstacle, player, scale)) {
       playImpactSound();
       state.timeLeft = Math.max(0, state.timeLeft - 6);
-      obstacle.y = canvas.height + 200;
+      obstacle.y = world.height + 200;
     }
   });
 
   state.coins = state.coins.filter((coin) => {
-    if (checkCircleCollision(coin, player)) {
+    const scale = getScale(coin.y);
+    if (checkCircleCollision(coin, player, scale)) {
       playCollectSound();
       state.distance += 120;
       return false;
@@ -280,7 +321,8 @@ const updateGame = (dt) => {
   });
 
   state.extenders = state.extenders.filter((extender) => {
-    if (checkCollision(extender, player)) {
+    const scale = getScale(extender.y);
+    if (checkCollision(extender, player, scale)) {
       playExtendSound();
       state.timeLeft += GAME.timeBonus;
       updateMaxTime();
@@ -297,36 +339,71 @@ const updateGame = (dt) => {
 };
 
 const drawRoad = () => {
-  const width = canvas.clientWidth;
-  const height = canvas.clientHeight;
+  const width = world.width;
+  const height = world.height;
   ctx.fillStyle = "#05060a";
   ctx.fillRect(0, 0, width, height);
 
-  const shoulder = 50;
-  ctx.fillStyle = "#0b1020";
-  ctx.fillRect(world.roadLeft - shoulder, 0, world.roadWidth + shoulder * 2, height);
+  ctx.fillStyle = "#05080f";
+  ctx.fillRect(0, 0, width, world.horizonY);
 
-  ctx.fillStyle = "#0f1628";
-  ctx.fillRect(world.roadLeft, 0, world.roadWidth, height);
+  const leftTop = world.topLeft;
+  const rightTop = world.topLeft + world.topWidth;
+  const leftBottom = world.roadLeft;
+  const rightBottom = world.roadLeft + world.roadWidth;
 
-  ctx.strokeStyle = "rgba(0, 245, 255, 0.45)";
-  ctx.lineWidth = 4;
-  ctx.setLineDash([26, 32]);
-  ctx.lineDashOffset = -state.distance * 0.18;
+  ctx.fillStyle = "#0b1224";
+  ctx.beginPath();
+  ctx.moveTo(leftTop, world.horizonY);
+  ctx.lineTo(rightTop, world.horizonY);
+  ctx.lineTo(rightBottom, height);
+  ctx.lineTo(leftBottom, height);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "rgba(0, 245, 255, 0.08)";
+  ctx.beginPath();
+  ctx.moveTo(leftTop - 30, world.horizonY);
+  ctx.lineTo(leftTop, world.horizonY);
+  ctx.lineTo(leftBottom, height);
+  ctx.lineTo(leftBottom - 40, height);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(rightTop + 30, world.horizonY);
+  ctx.lineTo(rightTop, world.horizonY);
+  ctx.lineTo(rightBottom, height);
+  ctx.lineTo(rightBottom + 40, height);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(0, 245, 255, 0.5)";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([18, 24]);
+  ctx.lineDashOffset = -state.distance * 0.2;
 
   for (let i = 1; i < GAME.laneCount; i += 1) {
-    const x = world.roadLeft + world.laneWidth * i;
+    const laneTop = leftTop + (world.topWidth / GAME.laneCount) * i;
+    const laneBottom = leftBottom + (world.roadWidth / GAME.laneCount) * i;
     ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, height);
+    ctx.moveTo(laneTop, world.horizonY);
+    ctx.lineTo(laneBottom, height);
     ctx.stroke();
   }
 
   ctx.setLineDash([]);
 
-  ctx.fillStyle = "rgba(0, 245, 255, 0.12)";
-  ctx.fillRect(world.roadLeft - 12, 0, 8, height);
-  ctx.fillRect(world.roadLeft + world.roadWidth + 4, 0, 8, height);
+  ctx.strokeStyle = "rgba(0, 245, 255, 0.3)";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(leftTop, world.horizonY);
+  ctx.lineTo(leftBottom, height);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(rightTop, world.horizonY);
+  ctx.lineTo(rightBottom, height);
+  ctx.stroke();
 };
 
 const drawCar = () => {
@@ -336,27 +413,40 @@ const drawCar = () => {
   ctx.rotate(lean);
 
   const gradient = ctx.createLinearGradient(0, -player.height / 2, 0, player.height / 2);
-  gradient.addColorStop(0, "#00f5ff");
-  gradient.addColorStop(1, "#4b00ff");
+  gradient.addColorStop(0, "#0ff");
+  gradient.addColorStop(1, "#3b00ff");
   ctx.fillStyle = gradient;
-  ctx.fillRect(-player.width / 2, -player.height / 2, player.width, player.height);
+  ctx.beginPath();
+  ctx.moveTo(-player.width / 2, player.height / 2);
+  ctx.lineTo(-player.width / 3, -player.height / 2);
+  ctx.lineTo(player.width / 3, -player.height / 2);
+  ctx.lineTo(player.width / 2, player.height / 2);
+  ctx.closePath();
+  ctx.fill();
 
-  ctx.fillStyle = "rgba(7, 10, 20, 0.8)";
-  ctx.fillRect(-player.width / 3, -player.height / 4, player.width / 1.5, player.height / 3);
+  ctx.fillStyle = "rgba(4, 8, 18, 0.85)";
+  ctx.beginPath();
+  ctx.moveTo(-player.width / 4, -player.height / 4);
+  ctx.lineTo(0, -player.height / 2 + 8);
+  ctx.lineTo(player.width / 4, -player.height / 4);
+  ctx.closePath();
+  ctx.fill();
 
   ctx.fillStyle = "#05060a";
-  ctx.fillRect(-player.width / 2 - 6, -player.height / 3, 8, player.height * 0.8);
-  ctx.fillRect(player.width / 2 - 2, -player.height / 3, 8, player.height * 0.8);
+  ctx.fillRect(-player.width / 2 - 6, -player.height / 4, 8, player.height * 0.7);
+  ctx.fillRect(player.width / 2 - 2, -player.height / 4, 8, player.height * 0.7);
 
-  ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
-  ctx.fillRect(-player.width / 2 + 6, -player.height / 2 + 8, 6, player.height - 16);
+  ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
+  ctx.fillRect(-player.width / 2 + 8, -player.height / 2 + 10, 6, player.height - 20);
 
   ctx.restore();
 };
 
 const drawObstacle = (obstacle) => {
+  const scale = getScale(obstacle.y);
   ctx.save();
   ctx.translate(obstacle.x, obstacle.y);
+  ctx.scale(scale, scale);
   ctx.fillStyle = "#141d30";
   ctx.fillRect(-obstacle.width / 2, -obstacle.height / 2, obstacle.width, obstacle.height);
   ctx.strokeStyle = "rgba(0, 245, 255, 0.5)";
@@ -366,8 +456,10 @@ const drawObstacle = (obstacle) => {
 };
 
 const drawCoin = (coin) => {
+  const scale = getScale(coin.y);
   ctx.save();
   ctx.translate(coin.x, coin.y);
+  ctx.scale(scale, scale);
   ctx.beginPath();
   ctx.arc(0, 0, coin.radius, 0, Math.PI * 2);
   ctx.fillStyle = "#f8c537";
@@ -379,8 +471,10 @@ const drawCoin = (coin) => {
 };
 
 const drawExtender = (extender) => {
+  const scale = getScale(extender.y);
   ctx.save();
   ctx.translate(extender.x, extender.y);
+  ctx.scale(scale, scale);
   ctx.fillStyle = "#00f5ff";
   ctx.fillRect(-extender.width / 2, -extender.height / 2, extender.width, extender.height);
   ctx.fillStyle = "rgba(4, 8, 16, 0.8)";
@@ -391,12 +485,13 @@ const drawExtender = (extender) => {
 
 const drawParticles = () => {
   ctx.fillStyle = "rgba(0, 245, 255, 0.18)";
-  const width = canvas.clientWidth;
-  const height = canvas.clientHeight;
-  for (let i = 0; i < 30; i += 1) {
-    const x = (i * 37) % width;
-    const y = (state.distance * 0.6 + i * 110) % height;
-    ctx.fillRect(x, y, 2, 14);
+  const width = world.width;
+  const height = world.height;
+  for (let i = 0; i < 24; i += 1) {
+    const x = (i * 43) % width;
+    const y = (state.distance * 0.7 + i * 130) % height;
+    const t = y / height;
+    ctx.fillRect(x, y, 2 + t * 2, 12 + t * 10);
   }
 };
 
