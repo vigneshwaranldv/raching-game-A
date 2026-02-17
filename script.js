@@ -49,7 +49,9 @@ const player = {
 const keys = new Set();
 let touchActive = false;
 
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const audioCtx = window.AudioContext || window.webkitAudioContext
+  ? new (window.AudioContext || window.webkitAudioContext)()
+  : null;
 
 const loadHighScore = () => {
   const stored = localStorage.getItem("velocityRidgeHighTime");
@@ -415,17 +417,25 @@ canvas.addEventListener("pointermove", (event) => {
   handlePointer(event);
 });
 
-canvas.addEventListener("pointerup", () => {
+const endPointer = () => {
   touchActive = false;
-});
+};
+
+canvas.addEventListener("pointerup", endPointer);
+canvas.addEventListener("pointercancel", endPointer);
+canvas.addEventListener("pointerleave", endPointer);
 
 startBtn.addEventListener("click", () => {
-  audioCtx.resume();
+  if (audioCtx) {
+    audioCtx.resume();
+  }
   startGame();
 });
 
 restartBtn.addEventListener("click", () => {
-  audioCtx.resume();
+  if (audioCtx) {
+    audioCtx.resume();
+  }
   startGame();
 });
 
